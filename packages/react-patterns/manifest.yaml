@@ -1,0 +1,11 @@
+name: react-patterns
+version: 1.0.0
+type: fragment
+description: React component patterns and best practices
+author: workflow-control
+tags:
+  - react
+  - patterns
+  - components
+files:
+  - react-patterns.md

@@ -1,0 +1,12 @@
+name: format-on-write
+version: 1.0.0
+type: hook
+description: Auto-format TypeScript/JS/CSS files after Write or Edit using Prettier and ESLint
+author: workflow-control
+tags:
+  - formatting
+  - prettier
+  - eslint
+  - auto-format
+files:
+  - format-on-write.yaml

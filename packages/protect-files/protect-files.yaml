@@ -1,0 +1,45 @@
+# Prevent writing to sensitive files
+# Blocks Write/Edit on env files, credentials, lock files, and .git internals.
+
+event: PreToolUse
+matcher: "Write|Edit"
+type: command
+timeout: 5
+statusMessage: "File protection check..."
+script: |
+  #!/bin/bash
+  INPUT=$(cat)
+  FILE_PATH=$(echo "$INPUT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).tool_input.file_path)}catch{}})" 2>/dev/null)
+
+  if [ -z "$FILE_PATH" ]; then
+    echo '{"decision":"allow"}'
+    exit 0
+  fi
+
+  BASENAME=$(basename "$FILE_PATH")
+
+  # Block .env files
+  if [[ "$BASENAME" == .env* ]]; then
+    echo '{"decision":"block","reason":"Writing to .env files is not allowed. Use AskUserQuestion to request manual env changes."}'
+    exit 0
+  fi
+
+  # Block credentials files
+  if [[ "$BASENAME" == credentials* ]] || [[ "$BASENAME" == secrets* ]]; then
+    echo '{"decision":"block","reason":"Writing to credential/secret files is not allowed."}'
+    exit 0
+  fi
+
+  # Block .git internals
+  if echo "$FILE_PATH" | grep -q '\.git/'; then
+    echo '{"decision":"block","reason":"Writing to .git/ internals is not allowed."}'
+    exit 0
+  fi
+
+  # Block lock files
+  if [[ "$BASENAME" == *-lock.* ]] || [[ "$BASENAME" == *.lock ]]; then
+    echo '{"decision":"block","reason":"Writing to lock files is not allowed. Use package manager commands instead."}'
+    exit 0
+  fi
+
+  echo '{"decision":"allow"}'

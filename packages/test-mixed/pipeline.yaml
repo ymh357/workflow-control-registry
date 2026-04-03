@@ -1,0 +1,63 @@
+name: "Test Mixed Engine"
+description: "Test pipeline — Gemini for analysis (cheaper), Claude for implementation (stronger coding)"
+engine: mixed
+display:
+  title_path: analysis.title
+stages:
+  - name: analyzing
+    type: agent
+    engine: gemini
+    effort: low
+    max_turns: 10
+    max_budget_usd: 0.1
+    runtime:
+      engine: llm
+      system_prompt: analysis
+      writes:
+        - analysis
+    outputs:
+      analysis:
+        type: object
+        label: Analysis
+        fields:
+          - key: title
+            type: string
+            description: Task title
+          - key: description
+            type: string
+            description: Description
+          - key: repoName
+            type: string
+            description: Repo name
+
+  - name: awaitingConfirm
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: analyzing
+
+  - name: implementing
+    type: agent
+    engine: claude
+    model: haiku
+    effort: low
+    max_turns: 15
+    max_budget_usd: 0.2
+    runtime:
+      engine: llm
+      system_prompt: implementation
+      writes:
+        - implementedFiles
+      reads:
+        analysis: analysis
+    outputs:
+      implementedFiles:
+        type: object
+        label: Implementation
+        fields:
+          - key: files
+            type: string[]
+            description: Changed files
+          - key: summary
+            type: string
+            description: Summary

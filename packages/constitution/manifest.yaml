@@ -1,0 +1,11 @@
+name: constitution
+version: 1.0.0
+type: fragment
+description: Immutable project rules and coding principles
+author: workflow-control
+tags:
+  - rules
+  - principles
+  - immutable
+files:
+  - constitution.md

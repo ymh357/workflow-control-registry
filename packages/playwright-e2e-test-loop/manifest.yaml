@@ -1,0 +1,16 @@
+name: playwright-e2e-test-loop
+version: 1.0.0
+type: pipeline
+description: Automated E2E test discovery, generation, execution, and fix loop for the workflow-control web dashboard
+  (apps/web/) using Playwright Test Agents (Planner/Generator/Healer) via the playwright-test MCP server.
+author: workflow-control
+tags:
+  - claude
+engine_compat: claude
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/discover-and-plan.md
+  - prompts/system/final-report.md
+  - prompts/system/generate-tests.md
+  - prompts/system/run-and-heal-loop.md

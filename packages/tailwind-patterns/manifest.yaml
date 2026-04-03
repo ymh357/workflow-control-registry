@@ -1,0 +1,11 @@
+name: tailwind-patterns
+version: 1.0.0
+type: fragment
+description: Tailwind CSS patterns and utility conventions
+author: workflow-control
+tags:
+  - tailwind
+  - css
+  - utility
+files:
+  - tailwind-patterns.md

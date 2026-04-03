@@ -1,0 +1,11 @@
+name: web3-check
+version: 1.0.0
+type: skill
+description: Web3-specific security and correctness checks for smart contract interactions
+author: workflow-control
+tags:
+  - web3
+  - security
+  - smart-contract
+files:
+  - web3-check.md

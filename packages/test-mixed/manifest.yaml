@@ -1,0 +1,13 @@
+name: test-mixed
+version: 1.0.0
+type: pipeline
+description: Test pipeline — Gemini for analysis (cheaper), Claude for implementation (stronger coding)
+author: workflow-control
+tags:
+  - mixed
+engine_compat: mixed
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/analysis.md
+  - prompts/system/implementation.md

@@ -1,0 +1,11 @@
+name: protect-files
+version: 1.0.0
+type: hook
+description: Prevent modifications to protected files (lock files, generated code, etc.)
+author: workflow-control
+tags:
+  - protection
+  - safety
+  - lock-files
+files:
+  - protect-files.yaml

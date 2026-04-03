@@ -1,0 +1,191 @@
+name: Playwright E2E Test Loop
+description: Automated E2E test discovery, generation, execution, and fix loop
+  for the workflow-control web dashboard (apps/web/) using Playwright Test Agents
+  (Planner/Generator/Healer) via the playwright-test MCP server.
+engine: claude
+use_cases:
+  - Automated discovery of untested UI scenarios in the workflow-control dashboard
+  - AI-driven Playwright test code generation from a structured test plan
+  - Self-healing test loop that fixes selector/timing issues and identifies real
+    application bugs
+  - Generating a Chinese-language E2E coverage report with manual test
+    recommendations
+display:
+  title_path: testPlan.title
+  completion_summary_path: report.summary
+stages:
+  - name: discoverAndPlan
+    type: agent
+    interactive: true
+    effort: high
+    max_budget_usd: 3
+    max_turns: 40
+    thinking:
+      type: enabled
+    mcps:
+      - playwright-test
+    runtime:
+      engine: llm
+      system_prompt: discover-and-plan
+      writes:
+        - testPlan
+      disallowed_tools:
+        - Edit
+        - Write
+        - Bash
+    outputs:
+      testPlan:
+        type: object
+        label: Test Plan
+        fields:
+          - key: title
+            type: string
+            description: Title of the test plan
+            display_hint: badge
+          - key: suites
+            type: object
+            description: Array of test suites, each with id, name, and description
+          - key: tests
+            type: object
+            description: Array of test cases, each with id, suiteId, name, steps (string[]),
+              expectedResult, and locatorHints (string[])
+          - key: nonAutomatableScenarios
+            type: object
+            description: Scenarios that cannot be automated, each with scenario, reason,
+              manualInstructions, and prerequisites (string[])
+          - key: assumptions
+            type: string[]
+            description: Inferred decisions made when interactive clarification was
+              unavailable
+  - name: awaitingPlanReview
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: discoverAndPlan
+      max_feedback_loops: 3
+  - name: generateTests
+    type: agent
+    permission_mode: acceptEdits
+    effort: medium
+    max_budget_usd: 4
+    max_turns: 50
+    thinking:
+      type: enabled
+    mcps:
+      - playwright-test
+    runtime:
+      engine: llm
+      system_prompt: generate-tests
+      writes:
+        - generatedTests
+      reads:
+        testPlan: testPlan
+    outputs:
+      generatedTests:
+        type: object
+        label: Generated Tests
+        fields:
+          - key: files
+            type: object
+            description: Array of generated test files, each with path (string), testCount
+              (number), and suiteId (string)
+          - key: testCount
+            type: number
+            description: Total number of generated test cases
+            display_hint: badge
+          - key: suiteCount
+            type: number
+            description: Total number of test suites generated
+  - name: runAndHealLoop
+    type: agent
+    permission_mode: acceptEdits
+    effort: high
+    max_budget_usd: 8
+    max_turns: 80
+    thinking:
+      type: enabled
+    mcps:
+      - playwright-test
+    on_complete:
+      notify: slack
+    runtime:
+      engine: llm
+      system_prompt: run-and-heal-loop
+      writes:
+        - healLoopResult
+      reads:
+        testPlan: testPlan
+        generatedTests: generatedTests
+    outputs:
+      healLoopResult:
+        type: object
+        label: Heal Loop Result
+        fields:
+          - key: testResults
+            type: object
+            description: Test run summary with passed (number), failed (number), skipped
+              (number), and total (number)
+          - key: realBugs
+            type: object
+            description: Array of confirmed application bugs, each with title, severity
+              (high|medium|low), filePath, reproSteps (string[]), and
+              suggestedFix
+          - key: testFixes
+            type: object
+            description: Array of test fixes applied, each with testFile, testName, fixType
+              (LOCATOR_ISSUE|TIMING_ISSUE|ASSERTION_MISMATCH), and description
+          - key: iterations
+            type: number
+            description: Number of heal loop iterations performed
+          - key: allPassing
+            type: boolean
+            description: Whether all tests are passing (or only real-bug skips remain) after
+              the heal loop
+            display_hint: badge
+  - name: finalReport
+    type: agent
+    permission_mode: plan
+    effort: low
+    max_budget_usd: 1
+    max_turns: 15
+    runtime:
+      engine: llm
+      system_prompt: final-report
+      writes:
+        - report
+      reads:
+        testPlan: testPlan
+        generatedTests: generatedTests
+        healLoopResult: healLoopResult
+    outputs:
+      report:
+        type: object
+        label: Final Report
+        fields:
+          - key: summary
+            type: string
+            description: One-paragraph Chinese executive summary of the full E2E test run,
+              suitable for UI display
+            display_hint: badge
+          - key: totalTests
+            type: object
+            description: "Aggregate test counts: passed (number), failed (number), skipped
+              (number)"
+          - key: newTestsAdded
+            type: number
+            description: Count of net-new test cases added by this pipeline run
+          - key: newTestFiles
+            type: string[]
+            description: Paths of new test files created under apps/web/e2e/tests/
+          - key: realBugsFound
+            type: object
+            description: Array of real application bugs discovered, each with title,
+              severity, and reproduction steps
+          - key: testLimitations
+            type: string[]
+            description: Non-automatable scenario summaries and manual testing
+              recommendations
+          - key: coverageImprovement
+            type: string
+            description: Narrative (Chinese) comparing coverage before and after, based on
+              testPlan vs generatedTests

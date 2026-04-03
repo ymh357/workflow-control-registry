@@ -1,0 +1,177 @@
+name: tech-debt-weekly-cleanup
+description: Weekly pipeline that scans multiple GitHub repos for
+  TODO/FIXME/HACK via a fast script, triages by severity with a human gate for
+  critical items, then runs a per-item sub-pipeline in parallel (code fix + risk
+  assessment). Failed validations auto-retry. Final report goes to Slack;
+  high-risk changes require Tech Lead approval.
+engine: mixed
+use_cases:
+  - Multi-repo weekly technical debt cleanup
+  - Automated TODO/FIXME/HACK triage and prioritization
+  - Parallel code fix + risk assessment per debt item
+  - High-risk change Tech Lead sign-off workflow
+stages:
+  - name: scanTechDebt
+    type: script
+    runtime:
+      engine: script
+      script_id: scan_tech_debt
+      writes:
+        - scanResults
+    outputs:
+      scanResults:
+        type: object
+        label: Scan Results
+        fields:
+          - key: items
+            type: object
+            description: Array of discovered debt items across all repos
+          - key: criticalCount
+            type: number
+            description: Number of critical severity items (HACK, security/crash/dataloss
+              FIXMEs)
+            display_hint: badge
+          - key: totalCount
+            type: number
+            description: Total number of debt items found
+            display_hint: badge
+          - key: repos
+            type: string[]
+            description: List of repositories scanned
+          - key: summary
+            type: string
+            description: Human-readable summary of scan results
+  - name: triageRoute
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.scanResults.criticalCount > 0
+          to: humanPriorityReview
+        - default: true
+          to: processItems
+  - name: humanPriorityReview
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: scanTechDebt
+      max_feedback_loops: 2
+      notify:
+        type: slack
+        template: "Critical tech debt items found: {{store.scanResults.criticalCount}}
+          critical issues require priority review before processing."
+  - name: processItems
+    type: foreach
+    runtime:
+      engine: foreach
+      items: store.scanResults.items
+      item_var: current_item
+      pipeline_name: debt-item-fix-pipeline
+      max_concurrency: 3
+      collect_to: processedItems
+      item_writes:
+        - fixSuggestion
+        - riskAssessment
+        - validation
+      on_item_error: continue
+  - name: generateReport
+    type: agent
+    engine: claude
+    permission_mode: plan
+    effort: medium
+    max_budget_usd: 1
+    max_turns: 20
+    runtime:
+      engine: llm
+      system_prompt: __GENERATED__
+      reads:
+        processedItems: store.processedItems
+        overview: store.scanResults
+      writes:
+        - report
+    outputs:
+      report:
+        type: object
+        label: Tech Debt Report
+        fields:
+          - key: body
+            type: markdown
+            description: Full report body in markdown
+          - key: hasHighRisk
+            type: boolean
+            description: Whether any high-risk items are present
+            display_hint: badge
+          - key: highRiskCount
+            type: number
+            description: Number of high-risk items
+            display_hint: badge
+          - key: slackMessage
+            type: string
+            description: Formatted Slack message content
+          - key: summary
+            type: string
+            description: Executive summary of the report
+  - name: notifySlack
+    type: script
+    runtime:
+      engine: script
+      script_id: send_slack_notification
+      reads:
+        report: store.report
+      writes:
+        - slackResult
+    outputs:
+      slackResult:
+        type: object
+        hidden: true
+        fields:
+          - key: messageUrl
+            type: string
+            description: URL of the posted Slack message
+            display_hint: link
+  - name: riskRoute
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.report.hasHighRisk == true
+          to: techLeadApproval
+        - default: true
+          to: archiveScan
+  - name: techLeadApproval
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: generateReport
+      max_feedback_loops: 1
+      notify:
+        type: slack
+        template: "High-risk tech debt changes require Tech Lead sign-off:
+          {{store.report.highRiskCount}} high-risk items identified. Please
+          review and approve."
+  - name: archiveScan
+    type: script
+    runtime:
+      engine: script
+      script_id: log_pipeline_completion
+      reads:
+        report: store.report
+      writes:
+        - completionLog
+    outputs:
+      completionLog:
+        type: object
+        hidden: true
+        fields:
+          - key: timestamp
+            type: string
+            description: ISO timestamp of pipeline completion
+          - key: status
+            type: string
+            description: Final pipeline status
+          - key: totalFixed
+            type: number
+            description: Total number of items processed
+display:
+  title_path: scanResults.summary
+  completion_summary_path: report.summary

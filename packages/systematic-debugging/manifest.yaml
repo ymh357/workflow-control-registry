@@ -1,0 +1,11 @@
+name: systematic-debugging
+version: 1.0.0
+type: skill
+description: Systematic debugging methodology with reproduction and root cause analysis
+author: workflow-control
+tags:
+  - debugging
+  - investigation
+  - root-cause
+files:
+  - systematic-debugging.md

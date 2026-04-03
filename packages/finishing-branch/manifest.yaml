@@ -1,0 +1,11 @@
+name: finishing-branch
+version: 1.0.0
+type: skill
+description: Final checks and cleanup before merging a feature branch
+author: workflow-control
+tags:
+  - git
+  - cleanup
+  - pr
+files:
+  - finishing-branch.md

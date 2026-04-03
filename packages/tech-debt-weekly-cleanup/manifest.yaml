@@ -1,0 +1,17 @@
+name: tech-debt-weekly-cleanup
+version: 1.0.0
+type: pipeline
+description: Weekly pipeline that scans multiple GitHub repos for TODO/FIXME/HACK via a fast script, triages by severity
+  with a human gate for critical items, then runs a per-item sub-pipeline in parallel (code fix + risk assessment).
+  Failed validations auto-retry. Final report goes to Slack; high-risk changes require Tech Lead approval.
+author: workflow-control
+tags:
+  - mixed
+engine_compat: mixed
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/code-fix-suggestion.md
+  - prompts/system/fix-validator.md
+  - prompts/system/report-generator.md
+  - prompts/system/risk-assessment.md

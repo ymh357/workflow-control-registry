@@ -1,0 +1,39 @@
+# Block dangerous shell commands before execution
+# Zero token cost — runs as a pre-tool hook on Bash calls.
+
+event: PreToolUse
+matcher: "Bash"
+type: command
+timeout: 5
+statusMessage: "Safety check..."
+script: |
+  #!/bin/bash
+  INPUT=$(cat)
+  CMD=$(echo "$INPUT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).tool_input.command)}catch{}})" 2>/dev/null)
+
+  BLOCKED_PATTERNS=(
+    'rm -rf /'
+    'rm -rf ~'
+    'git push --force'
+    'git push -f'
+    'git reset --hard'
+    'git clean -fd'
+    'git clean -f'
+    'drop database'
+    'DROP DATABASE'
+    'DROP TABLE'
+    'truncate table'
+    'TRUNCATE TABLE'
+    '> /dev/sda'
+    'mkfs\.'
+    ':(){:|:&};:'
+  )
+
+  for pattern in "${BLOCKED_PATTERNS[@]}"; do
+    if echo "$CMD" | grep -qiE "$pattern"; then
+      echo '{"decision":"block","reason":"Dangerous command blocked: '"$pattern"'. Use AskUserQuestion to confirm with user if this is intentional."}'
+      exit 0
+    fi
+  done
+
+  echo '{"decision":"allow"}'

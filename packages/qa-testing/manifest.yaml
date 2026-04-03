@@ -1,0 +1,11 @@
+name: qa-testing
+version: 1.0.0
+type: fragment
+description: QA testing strategies (test pyramid, AAA pattern, component testing)
+author: workflow-control
+tags:
+  - testing
+  - qa
+  - tdd
+files:
+  - qa-testing.md

@@ -1,0 +1,194 @@
+name: pr-security-performance-review
+description: Analyzes a pull request by running security scanning and
+  performance testing in parallel, synthesizes findings into a review comment,
+  and posts it to GitHub after human approval.
+engine: claude
+use_cases:
+  - Automated security vulnerability detection on incoming PRs
+  - Performance regression identification before merging
+  - Combined PR review with structured findings posted back to GitHub
+  - CI/CD quality gate for security and performance standards
+display:
+  title_path: prInfo.title
+  completion_summary_path: commentUrl.url
+stages:
+  - name: prAnalysis
+    type: agent
+    effort: medium
+    max_budget_usd: 2
+    max_turns: 25
+    thinking:
+      type: enabled
+    interactive: true
+    runtime:
+      engine: llm
+      system_prompt: pr-analysis
+      writes:
+        - prInfo
+    outputs:
+      prInfo:
+        type: object
+        label: PR Information
+        fields:
+          - key: prNumber
+            type: string
+            description: Pull request number
+          - key: repoName
+            type: string
+            description: Repository name in owner/repo format
+          - key: prUrl
+            type: string
+            description: URL of the pull request
+            display_hint: link
+          - key: title
+            type: string
+            description: PR title
+          - key: author
+            type: string
+            description: PR author username
+          - key: changedFiles
+            type: string[]
+            description: List of files changed in the PR
+          - key: diffSummary
+            type: string
+            description: Summary of the diff and nature of changes
+          - key: assumptions
+            type: string[]
+            description: Assumptions made when interactive clarification was unavailable
+  - parallel:
+      name: deepReview
+      stages:
+        - name: securityScan
+          type: agent
+          effort: high
+          max_budget_usd: 4
+          max_turns: 50
+          thinking:
+            type: enabled
+          skills:
+            - security-review
+          runtime:
+            engine: llm
+            system_prompt: security-scan
+            writes:
+              - securityFindings
+            reads:
+              prInfo: prInfo
+            disallowed_tools:
+              - Edit
+              - Write
+          outputs:
+            securityFindings:
+              type: object
+              label: Security Findings
+              fields:
+                - key: severity
+                  type: string
+                  description: "Overall severity level: critical / high / medium / low / none"
+                  display_hint: badge
+                - key: issues
+                  type: object
+                  description: Array of identified security issues with type, severity, location,
+                    and description
+                - key: passed
+                  type: boolean
+                  description: Whether the PR passed security review with no critical/high issues
+                  display_hint: badge
+                - key: summary
+                  type: string
+                  description: Concise summary of security review findings
+        - name: performanceScan
+          type: agent
+          effort: high
+          max_budget_usd: 4
+          max_turns: 50
+          thinking:
+            type: enabled
+          skills:
+            - performance-audit
+          runtime:
+            engine: llm
+            system_prompt: performance-scan
+            writes:
+              - performanceFindings
+            reads:
+              prInfo: prInfo
+            disallowed_tools:
+              - Edit
+              - Write
+          outputs:
+            performanceFindings:
+              type: object
+              label: Performance Findings
+              fields:
+                - key: issues
+                  type: object
+                  description: Array of identified performance issues with type, impact, and
+                    location
+                - key: recommendations
+                  type: object
+                  description: Array of performance improvement recommendations with priority
+                - key: passed
+                  type: boolean
+                  description: Whether the PR passed performance review with no regressions
+                    detected
+                  display_hint: badge
+                - key: summary
+                  type: string
+                  description: Concise summary of performance review findings
+  - name: reviewSynthesis
+    type: agent
+    effort: medium
+    max_budget_usd: 1.5
+    max_turns: 20
+    permission_mode: plan
+    runtime:
+      engine: llm
+      system_prompt: review-synthesis
+      writes:
+        - reviewDraft
+      reads:
+        prInfo: prInfo
+        securityFindings: securityFindings
+        performanceFindings: performanceFindings
+    outputs:
+      reviewDraft:
+        type: object
+        label: Review Draft
+        fields:
+          - key: body
+            type: string
+            description: Full markdown text of the PR review comment including all findings
+              and action items
+          - key: verdict
+            type: string
+            description: "Review verdict: approve / request-changes / comment"
+            display_hint: badge
+          - key: overallRating
+            type: string
+            description: Overall quality rating of the PR changes
+  - name: reviewGate
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: reviewSynthesis
+      max_feedback_loops: 3
+  - name: postComment
+    type: script
+    runtime:
+      engine: script
+      script_id: gh_pr_comment
+      reads:
+        prUrl: prInfo.prUrl
+        body: reviewDraft.body
+      writes:
+        - commentUrl
+    outputs:
+      commentUrl:
+        type: object
+        label: Posted Comment
+        fields:
+          - key: url
+            type: string
+            description: URL of the posted GitHub PR comment
+            display_hint: link

@@ -1,0 +1,11 @@
+name: performance-audit
+version: 1.0.0
+type: skill
+description: Audit code for performance issues and optimization opportunities
+author: workflow-control
+tags:
+  - performance
+  - optimization
+  - audit
+files:
+  - performance-audit.md

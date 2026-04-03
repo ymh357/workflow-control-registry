@@ -1,0 +1,9 @@
+name: test-integration
+version: 1.0.0
+type: fragment
+description: "Knowledge fragment: test-integration"
+author: workflow-control
+tags:
+  - test-integration
+files:
+  - test-integration.md

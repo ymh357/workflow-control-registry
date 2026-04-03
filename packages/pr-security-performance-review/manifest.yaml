@@ -1,0 +1,16 @@
+name: pr-security-performance-review
+version: 1.0.0
+type: pipeline
+description: Analyzes a pull request by running security scanning and performance testing in parallel, synthesizes
+  findings into a review comment, and posts it to GitHub after human approval.
+author: workflow-control
+tags:
+  - claude
+engine_compat: claude
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/performance-scan.md
+  - prompts/system/pr-analysis.md
+  - prompts/system/review-synthesis.md
+  - prompts/system/security-scan.md

@@ -1,0 +1,11 @@
+name: safety-guard
+version: 1.0.0
+type: hook
+description: Safety guard hook to prevent dangerous operations
+author: workflow-control
+tags:
+  - safety
+  - guard
+  - protection
+files:
+  - safety-guard.yaml
