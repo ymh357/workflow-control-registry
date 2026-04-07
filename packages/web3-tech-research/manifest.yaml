@@ -1,16 +1,23 @@
 name: web3-tech-research
 version: 1.0.0
 type: pipeline
-description: "pipeline: web3-tech-research"
+description: Research-driven pipeline for Web3 protocol selection, competitive analysis, and technical feasibility assessment. Enforces on-chain verification before content production.
 author: workflow-control
 tags:
-  - pipeline
+  - web3
+  - research
+  - bridge
+  - protocol
+engine_compat: claude
+dependencies:
+  pipelines:
+    - web3-research-writer
 files:
   - pipeline.yaml
   - prompts/global-constraints.md
-  - prompts/system/competitor-benchmark.md
   - prompts/system/context-scan.md
   - prompts/system/domain-research.md
-  - prompts/system/final-review.md
   - prompts/system/onchain-verification.md
+  - prompts/system/competitor-benchmark.md
   - prompts/system/output-planning.md
+  - prompts/system/final-review.md
