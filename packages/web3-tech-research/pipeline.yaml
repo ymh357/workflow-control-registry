@@ -1,0 +1,298 @@
+name: Web3 Tech Research — Protocol-Level Investigation Pipeline
+description: >
+  Research-driven pipeline for Web3 protocol selection, competitive analysis,
+  and technical feasibility assessment. Enforces on-chain verification BEFORE
+  content production to prevent the "write first, verify later" anti-pattern.
+  Derived from the 0G cross-chain bridge research where skipping on-chain
+  verification caused 200+ lines of rework across 8 files.
+engine: claude
+use_cases:
+  - Evaluate protocol X for integration (e.g., bridge, oracle, DA layer)
+  - Compare competing protocols in a specific domain
+  - Audit current on-chain deployment state vs documentation claims
+  - Produce technical report / development guide / implementation plan
+display:
+  title_path: domainResearch.summary
+  completion_summary_path: finalOutput.summary
+claude_md:
+  global: web3-research-constraints.md
+stages:
+  - name: contextScan
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 20
+    max_budget_usd: 1
+    mcps:
+      - context7
+    runtime:
+      engine: llm
+      system_prompt: context-scan
+      writes:
+        - projectContext
+        - pipelineConfig
+    outputs:
+      pipelineConfig:
+        type: object
+        label: Pipeline Configuration
+        fields:
+          - key: research_topic
+            type: string
+            description: The technical domain to investigate (extracted from task
+              description)
+          - key: target_project
+            type: string
+            description: The project this research serves
+          - key: output_types
+            type: string[]
+            description: "Desired deliverables: tutorial, technical-report, dev-guide,
+              impl-plan, optimization-report"
+          - key: competitor_products
+            type: string[]
+            description: Products to benchmark against (empty array if none)
+      projectContext:
+        type: object
+        label: Project Context
+        fields:
+          - key: knownFacts
+            type: string[]
+            description: What we already know about this project's use of the technology
+          - key: openQuestions
+            type: string[]
+            description: Questions that need answering
+          - key: existingDocs
+            type: string[]
+            description: Relevant internal documents found
+          - key: summary
+            type: string
+            description: One-paragraph context summary
+  - name: domainResearch
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 40
+    max_budget_usd: 3
+    mcps:
+      - context7
+    runtime:
+      engine: llm
+      system_prompt: domain-research
+      reads:
+        pipelineConfig: pipelineConfig
+      writes:
+        - domainKnowledge
+    outputs:
+      domainKnowledge:
+        type: object
+        label: Domain Knowledge
+        fields:
+          - key: sourceCount
+            type: number
+            description: Number of sources consulted
+            display_hint: badge
+          - key: protocolCount
+            type: number
+            description: Number of protocols/solutions enumerated
+            display_hint: badge
+          - key: protocols
+            type: string[]
+            description: All protocols identified in this domain
+          - key: conceptMap
+            type: string[]
+            description: Ordered concept dependency chain
+          - key: reportPath
+            type: string
+            description: File path to full research notes in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph research summary
+  - name: onchainVerification
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 50
+    max_budget_usd: 4
+    mcps:
+      - context7
+    runtime:
+      engine: llm
+      system_prompt: onchain-verification
+      writes:
+        - onchainFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        domainKnowledge: domainKnowledge
+    outputs:
+      onchainFacts:
+        type: object
+        label: On-Chain Verification Results
+        fields:
+          - key: verifiedClaims
+            type: number
+            description: Number of claims verified on-chain
+            display_hint: badge
+          - key: correctionsFound
+            type: number
+            description: Number of corrections vs initial assumptions
+            display_hint: badge
+          - key: corrections
+            type: string[]
+            description: List of corrections (assumption -> on-chain fact)
+          - key: contractAddresses
+            type: string[]
+            description: Key contract addresses verified
+          - key: reportPath
+            type: string
+            description: File path to full verification report in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph verification summary
+  - name: awaitingVerificationReview
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: onchainVerification
+      notify:
+        type: slack
+        template: verification-ready
+  - name: competitorRoute
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.competitor_products
+          to: competitorBenchmark
+        - default: true
+          to: outputPlanning
+  - name: competitorBenchmark
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 40
+    max_budget_usd: 3
+    mcps:
+      - context7
+    runtime:
+      engine: llm
+      system_prompt: competitor-benchmark
+      writes:
+        - benchmarkResults
+      reads:
+        pipelineConfig: pipelineConfig
+        onchainFacts: onchainFacts
+        domainKnowledge: domainKnowledge
+    outputs:
+      benchmarkResults:
+        type: object
+        label: Competitor Benchmark
+        fields:
+          - key: productsCompared
+            type: string[]
+            description: Products that were benchmarked
+          - key: txEvidence
+            type: string[]
+            description: Transaction hashes used as evidence
+          - key: reportPath
+            type: string
+            description: File path to full benchmark report in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph benchmark summary
+  - name: outputPlanning
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: output-planning
+      writes:
+        - outputPlan
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        domainKnowledge: domainKnowledge
+        onchainFacts: onchainFacts
+        benchmarkResults: benchmarkResults
+    outputs:
+      outputPlan:
+        type: object
+        label: Output Plan
+        fields:
+          - key: deliverableCount
+            type: number
+            description: Number of deliverables planned
+          - key: deliverables
+            type: string[]
+            description: List of deliverable identifiers (used by foreach iteration)
+          - key: outlinePath
+            type: string
+            description: File path to the full outline written to .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph output plan summary
+  - name: awaitingPlanConfirm
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: outputPlanning
+      notify:
+        type: slack
+        template: plan-ready
+  - name: produceDeliverables
+    type: foreach
+    runtime:
+      engine: foreach
+      items: store.outputPlan.deliverables
+      item_var: current_deliverable
+      pipeline_name: web3-research-writer
+      max_concurrency: 2
+      collect_to: writtenDeliverables
+      item_writes:
+        - deliverableResult
+      on_item_error: continue
+      reads:
+        outputPlan: outputPlan
+        domainKnowledge: domainKnowledge
+        onchainFacts: onchainFacts
+        benchmarkResults: benchmarkResults
+        projectContext: projectContext
+  - name: finalReview
+    type: agent
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: final-review
+      writes:
+        - finalOutput
+      reads:
+        onchainFacts: onchainFacts
+        outputPlan: outputPlan
+        writtenDeliverables: writtenDeliverables
+    outputs:
+      finalOutput:
+        type: object
+        label: Final Output
+        fields:
+          - key: deliverableFiles
+            type: string[]
+            description: All files produced
+          - key: factCheckPassed
+            type: boolean
+            description: Whether all claims have on-chain evidence
+          - key: summary
+            type: string
+            description: Final summary of all deliverables
