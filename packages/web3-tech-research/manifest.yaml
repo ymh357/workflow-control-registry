@@ -1,0 +1,16 @@
+name: web3-tech-research
+version: 1.0.0
+type: pipeline
+description: "pipeline: web3-tech-research"
+author: workflow-control
+tags:
+  - pipeline
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/competitor-benchmark.md
+  - prompts/system/context-scan.md
+  - prompts/system/domain-research.md
+  - prompts/system/final-review.md
+  - prompts/system/onchain-verification.md
+  - prompts/system/output-planning.md
