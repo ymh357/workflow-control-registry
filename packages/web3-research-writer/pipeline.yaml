@@ -1,0 +1,46 @@
+name: "Web3 Research Writer"
+description: "Sub-pipeline that writes a single research deliverable. Invoked per-item by web3-tech-research foreach."
+engine: claude
+claude_md:
+  global: web3-research-constraints.md
+stages:
+  - name: writeDeliverable
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 50
+    max_budget_usd: 5
+    mcps:
+      - context7
+    runtime:
+      engine: llm
+      system_prompt: write-deliverable
+      writes:
+        - deliverableResult
+      reads:
+        outputPlan: outputPlan
+        domainKnowledge: domainKnowledge
+        onchainFacts: onchainFacts
+        benchmarkResults: benchmarkResults
+        projectContext: projectContext
+    outputs:
+      deliverableResult:
+        type: object
+        label: Written Deliverable
+        fields:
+          - key: deliverableId
+            type: string
+            description: Deliverable identifier
+          - key: filePath
+            type: string
+            description: File path where content was written
+          - key: wordCount
+            type: number
+            description: Approximate word count
+          - key: sourcesLinked
+            type: number
+            description: Number of inline source citations
+          - key: onchainRefsCount
+            type: number
+            description: Number of on-chain evidence references
