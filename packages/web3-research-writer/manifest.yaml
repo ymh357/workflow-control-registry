@@ -1,12 +1,10 @@
 name: web3-research-writer
-version: 1.0.0
+version: 2.0.0
 type: pipeline
 description: Sub-pipeline that writes a single research deliverable. Invoked per-item by web3-tech-research foreach.
 author: workflow-control
 tags:
-  - web3
-  - research
-  - writer
+  - claude
 engine_compat: claude
 files:
   - pipeline.yaml
