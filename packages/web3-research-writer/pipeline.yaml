@@ -2,7 +2,7 @@ name: "Web3 Research Writer"
 description: "Sub-pipeline that writes a single research deliverable. Invoked per-item by web3-tech-research foreach."
 engine: claude
 claude_md:
-  global: web3-research-constraints.md
+  global: global-constraints.md
 stages:
   - name: writeDeliverable
     type: agent
@@ -19,11 +19,16 @@ stages:
       writes:
         - deliverableResult
       reads:
+        pipelineConfig: pipelineConfig
         outputPlan: outputPlan
         domainKnowledge: domainKnowledge
         onchainFacts: onchainFacts
         benchmarkResults: benchmarkResults
         projectContext: projectContext
+        primarySources: primarySources
+        landscapeResults: landscapeResults
+        painPoints: painPoints
+        solutionPlan: solutionPlan
     outputs:
       deliverableResult:
         type: object
