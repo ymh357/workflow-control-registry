@@ -1,22 +1,27 @@
 name: Web3 Tech Research — Protocol-Level Investigation Pipeline
 description: >
   Research-driven pipeline for Web3 protocol selection, competitive analysis,
-  and technical feasibility assessment. Enforces on-chain verification BEFORE
-  content production to prevent the "write first, verify later" anti-pattern.
-  Derived from the 0G cross-chain bridge research where skipping on-chain
-  verification caused 200+ lines of rework across 8 files.
+  and technical feasibility assessment. Enforces primary-source-first research
+  and independent fact-checking to prevent the "echo chamber" anti-pattern.
+  On-chain verification runs BEFORE content production.
+  Supports two modes: "full" (product optimization with benchmarks, pain points,
+  solution design) and "explore" (greenfield research with lightweight landscape
+  analysis).
 engine: claude
 use_cases:
   - Evaluate protocol X for integration (e.g., bridge, oracle, DA layer)
   - Compare competing protocols in a specific domain
   - Audit current on-chain deployment state vs documentation claims
-  - Produce technical report / development guide / implementation plan
+  - Produce technical report / development guide / implementation plan / optimization report
+  - Explore a new technical domain from scratch (no existing product)
 display:
   title_path: domainResearch.summary
   completion_summary_path: finalOutput.summary
 claude_md:
-  global: web3-research-constraints.md
+  global: global-constraints.md
 stages:
+  # ── Phase 1: Gather Facts (both modes) ─────────────────────────────
+
   - name: contextScan
     type: agent
     thinking:
@@ -24,8 +29,6 @@ stages:
     effort: medium
     max_turns: 20
     max_budget_usd: 1
-    mcps:
-      - context7
     runtime:
       engine: llm
       system_prompt: context-scan
@@ -39,25 +42,26 @@ stages:
         fields:
           - key: research_topic
             type: string
-            description: The technical domain to investigate (extracted from task
-              description)
+            description: The technical domain to investigate
           - key: target_project
             type: string
-            description: The project this research serves
+            description: The project this research serves (may be empty for explore mode)
+          - key: task_mode
+            type: string
+            description: "Pipeline mode: 'full' (product optimization) or 'explore' (greenfield research)"
           - key: output_types
             type: string[]
-            description: "Desired deliverables: tutorial, technical-report, dev-guide,
-              impl-plan, optimization-report"
+            description: "Desired deliverables: tutorial, technical-report, dev-guide, impl-plan, optimization-report"
           - key: competitor_products
             type: string[]
-            description: Products to benchmark against (empty array if none)
+            description: Products to benchmark against (full mode only)
       projectContext:
         type: object
         label: Project Context
         fields:
           - key: knownFacts
             type: string[]
-            description: What we already know about this project's use of the technology
+            description: What we already know from internal sources
           - key: openQuestions
             type: string[]
             description: Questions that need answering
@@ -67,6 +71,57 @@ stages:
           - key: summary
             type: string
             description: One-paragraph context summary
+
+  - name: primarySourceCollection
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 35
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: primary-source-collection
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+      writes:
+        - primarySources
+    outputs:
+      primarySources:
+        type: object
+        label: Primary Source Data
+        fields:
+          - key: officialSourceCount
+            type: number
+            description: Number of official sources consulted (docs, Gitbook, GitHub, official blog)
+            display_hint: badge
+          - key: spaWarnings
+            type: string[]
+            description: URLs that returned empty/partial content due to JavaScript rendering (SPA/Gitbook)
+          - key: officialTokenomics
+            type: string
+            description: Token distribution and vesting data from official sources only
+          - key: officialArchitecture
+            type: string
+            description: Protocol architecture summary from official documentation
+          - key: githubFindings
+            type: string[]
+            description: Key findings from GitHub repos (commit activity, open issues, code quality signals)
+          - key: governanceModel
+            type: string
+            description: Governance structure from official sources
+          - key: sourceCatalog
+            type: string[]
+            description: "Catalog of all official URLs consulted with status (success | spa-blocked | 404 | partial)"
+          - key: reportPath
+            type: string
+            description: File path to full primary source notes in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph primary source summary
+
   - name: domainResearch
     type: agent
     thinking:
@@ -74,13 +129,13 @@ stages:
     effort: high
     max_turns: 40
     max_budget_usd: 3
-    mcps:
-      - context7
     runtime:
       engine: llm
       system_prompt: domain-research
       reads:
         pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        primarySources: primarySources
       writes:
         - domainKnowledge
     outputs:
@@ -90,7 +145,7 @@ stages:
         fields:
           - key: sourceCount
             type: number
-            description: Number of sources consulted
+            description: Number of third-party sources consulted
             display_hint: badge
           - key: protocolCount
             type: number
@@ -99,9 +154,15 @@ stages:
           - key: protocols
             type: string[]
             description: All protocols identified in this domain
+          - key: ecosystemStatus
+            type: string[]
+            description: Per-protocol deployment status on target chain
           - key: conceptMap
             type: string[]
             description: Ordered concept dependency chain
+          - key: conflictsWithPrimary
+            type: string[]
+            description: Data points where third-party sources contradict official primary sources
           - key: reportPath
             type: string
             description: File path to full research notes in .workflow/
@@ -109,6 +170,19 @@ stages:
           - key: summary
             type: string
             description: One-paragraph research summary
+
+  # ── Route: on-chain verification scope depends on mode ─────────────
+
+  - name: routeVerification
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.task_mode == 'full'
+          to: onchainVerification
+        - default: true
+          to: onchainSpotCheck
+
   - name: onchainVerification
     type: agent
     thinking:
@@ -116,8 +190,6 @@ stages:
     effort: high
     max_turns: 50
     max_budget_usd: 4
-    mcps:
-      - context7
     runtime:
       engine: llm
       system_prompt: onchain-verification
@@ -126,6 +198,7 @@ stages:
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
+        primarySources: primarySources
         domainKnowledge: domainKnowledge
     outputs:
       onchainFacts:
@@ -146,6 +219,12 @@ stages:
           - key: contractAddresses
             type: string[]
             description: Key contract addresses verified
+          - key: tokenTopology
+            type: string
+            description: Token/asset system summary across chains
+          - key: securityFindings
+            type: string[]
+            description: Security-relevant findings (owner type, multisig, admin keys)
           - key: reportPath
             type: string
             description: File path to full verification report in .workflow/
@@ -153,6 +232,70 @@ stages:
           - key: summary
             type: string
             description: One-paragraph verification summary
+
+  - name: onchainSpotCheck
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 25
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: onchain-spot-check
+      writes:
+        - onchainFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+    outputs:
+      onchainFacts:
+        type: object
+        label: On-Chain Spot Check Results
+        fields:
+          - key: verifiedClaims
+            type: number
+            description: Number of claims spot-checked via aggregators and block explorers
+            display_hint: badge
+          - key: correctionsFound
+            type: number
+            description: Number of corrections vs primary source data
+            display_hint: badge
+          - key: corrections
+            type: string[]
+            description: List of corrections (primary source claim -> aggregator/explorer data)
+          - key: contractAddresses
+            type: string[]
+            description: Key contract addresses found
+          - key: aggregatorSources
+            type: string[]
+            description: "Aggregator APIs used (e.g., CoinGecko, DefiLlama) — clearly labeled as non-on-chain"
+          - key: dataConfidenceNotes
+            type: string[]
+            description: Per-claim confidence level and source tier (on-chain vs aggregator vs self-reported)
+          - key: reportPath
+            type: string
+            description: File path to spot check report in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph spot check summary
+
+  # ── Route: full analysis vs lightweight landscape ──────────────────
+
+  - name: routeAnalysis
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.task_mode == 'full'
+          to: awaitingVerificationReview
+        - default: true
+          to: landscapeAnalysis
+
+  # ── Full mode: Gate + Deep Analysis ────────────────────────────────
+
   - name: awaitingVerificationReview
     type: human_confirm
     runtime:
@@ -161,15 +304,7 @@ stages:
       notify:
         type: slack
         template: verification-ready
-  - name: competitorRoute
-    type: condition
-    runtime:
-      engine: condition
-      branches:
-        - when: store.pipelineConfig.competitor_products
-          to: competitorBenchmark
-        - default: true
-          to: outputPlanning
+
   - name: competitorBenchmark
     type: agent
     thinking:
@@ -177,8 +312,6 @@ stages:
     effort: high
     max_turns: 40
     max_budget_usd: 3
-    mcps:
-      - context7
     runtime:
       engine: llm
       system_prompt: competitor-benchmark
@@ -186,6 +319,7 @@ stages:
         - benchmarkResults
       reads:
         pipelineConfig: pipelineConfig
+        primarySources: primarySources
         onchainFacts: onchainFacts
         domainKnowledge: domainKnowledge
     outputs:
@@ -199,6 +333,9 @@ stages:
           - key: txEvidence
             type: string[]
             description: Transaction hashes used as evidence
+          - key: dimensionsCovered
+            type: string[]
+            description: Comparison dimensions (speed, cost, UX, security, etc.)
           - key: reportPath
             type: string
             description: File path to full benchmark report in .workflow/
@@ -206,6 +343,158 @@ stages:
           - key: summary
             type: string
             description: One-paragraph benchmark summary
+
+  - name: painPointAnalysis
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: pain-point-analysis
+      writes:
+        - painPoints
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        primarySources: primarySources
+        onchainFacts: onchainFacts
+        domainKnowledge: domainKnowledge
+        benchmarkResults: benchmarkResults
+    outputs:
+      painPoints:
+        type: object
+        label: Pain Point Analysis
+        fields:
+          - key: totalCount
+            type: number
+            description: Total number of pain points identified
+            display_hint: badge
+          - key: criticalCount
+            type: number
+            description: Number of critical/fatal issues
+            display_hint: badge
+          - key: painPointList
+            type: string[]
+            description: Pain points with severity tags
+          - key: rootCauses
+            type: string[]
+            description: Root cause -> resolvable layer mapping
+          - key: reportPath
+            type: string
+            description: File path to full analysis in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph pain point summary
+
+  - name: solutionDesign
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 40
+    max_budget_usd: 3
+    runtime:
+      engine: llm
+      system_prompt: solution-design
+      writes:
+        - solutionPlan
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        onchainFacts: onchainFacts
+        domainKnowledge: domainKnowledge
+        benchmarkResults: benchmarkResults
+        painPoints: painPoints
+    outputs:
+      solutionPlan:
+        type: object
+        label: Solution Design
+        fields:
+          - key: pathCount
+            type: number
+            description: Number of solution paths proposed
+            display_hint: badge
+          - key: paths
+            type: string[]
+            description: Solution path names
+          - key: recommendedPath
+            type: string
+            description: Recommended path with short/mid/long-term breakdown
+          - key: riskCount
+            type: number
+            description: Total risks identified across all paths
+            display_hint: badge
+          - key: reportPath
+            type: string
+            description: File path to full solution design in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph solution design summary
+
+  - name: awaitingSolutionReview
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: solutionDesign
+      notify:
+        type: slack
+        template: solution-ready
+
+  # ── Explore mode: Lightweight Landscape Analysis ───────────────────
+
+  - name: landscapeAnalysis
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: landscape-analysis
+      writes:
+        - landscapeResults
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        onchainFacts: onchainFacts
+        domainKnowledge: domainKnowledge
+    outputs:
+      landscapeResults:
+        type: object
+        label: Landscape Analysis
+        fields:
+          - key: competitorsIdentified
+            type: number
+            description: Number of competing protocols analyzed
+            display_hint: badge
+          - key: competitors
+            type: string[]
+            description: List of competitor protocol names
+          - key: positioningMatrix
+            type: string
+            description: Competitive positioning summary (strengths, weaknesses, differentiation)
+          - key: marketGaps
+            type: string[]
+            description: Identified gaps or underserved niches in the landscape
+          - key: adoptionSignals
+            type: string[]
+            description: TVL, user counts, transaction volume, or other traction indicators per competitor
+          - key: reportPath
+            type: string
+            description: File path to landscape analysis in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph landscape summary
+
+  # ── Phase 3: Produce (both modes) ──────────────────────────────────
+
   - name: outputPlanning
     type: agent
     thinking:
@@ -221,9 +510,13 @@ stages:
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
+        primarySources: primarySources
         domainKnowledge: domainKnowledge
         onchainFacts: onchainFacts
         benchmarkResults: benchmarkResults
+        painPoints: painPoints
+        solutionPlan: solutionPlan
+        landscapeResults: landscapeResults
     outputs:
       outputPlan:
         type: object
@@ -242,14 +535,7 @@ stages:
           - key: summary
             type: string
             description: One-paragraph output plan summary
-  - name: awaitingPlanConfirm
-    type: human_confirm
-    runtime:
-      engine: human_gate
-      on_reject_to: outputPlanning
-      notify:
-        type: slack
-        template: plan-ready
+
   - name: produceDeliverables
     type: foreach
     runtime:
@@ -263,15 +549,79 @@ stages:
         - deliverableResult
       on_item_error: continue
       reads:
+        pipelineConfig: pipelineConfig
         outputPlan: outputPlan
+        primarySources: primarySources
         domainKnowledge: domainKnowledge
         onchainFacts: onchainFacts
         benchmarkResults: benchmarkResults
+        painPoints: painPoints
+        solutionPlan: solutionPlan
+        landscapeResults: landscapeResults
         projectContext: projectContext
+
+  # ── Phase 4: Verify + Finalize (both modes) ────────────────────────
+
+  - name: factCheck
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 35
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: fact-check
+      writes:
+        - factCheckResults
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+        onchainFacts: onchainFacts
+        writtenDeliverables: writtenDeliverables
+    outputs:
+      factCheckResults:
+        type: object
+        label: Fact Check Results
+        fields:
+          - key: claimsChecked
+            type: number
+            description: Number of key claims independently re-verified
+            display_hint: badge
+          - key: issuesFound
+            type: number
+            description: Number of factual issues discovered
+            display_hint: badge
+          - key: externalSourcesUsed
+            type: string[]
+            description: External URLs re-fetched for independent verification (not from pipeline store)
+          - key: verifiedClaims
+            type: string[]
+            description: Claims that passed independent verification
+          - key: failedClaims
+            type: string[]
+            description: "Claims that failed verification with explanation (claim -> finding -> source)"
+          - key: corrections
+            type: string[]
+            description: Specific text corrections needed in deliverables
+          - key: confidenceScore
+            type: string
+            description: "Overall confidence: high (0 failures) | medium (1-2 minor) | low (3+ or any critical)"
+          - key: reportPath
+            type: string
+            description: File path to full fact-check report in .workflow/
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph fact-check summary
+
   - name: finalReview
     type: agent
+    thinking:
+      type: enabled
     effort: medium
-    max_turns: 30
+    max_turns: 40
     max_budget_usd: 2
     runtime:
       engine: llm
@@ -279,9 +629,10 @@ stages:
       writes:
         - finalOutput
       reads:
-        onchainFacts: onchainFacts
+        pipelineConfig: pipelineConfig
         outputPlan: outputPlan
         writtenDeliverables: writtenDeliverables
+        factCheckResults: factCheckResults
     outputs:
       finalOutput:
         type: object
@@ -290,9 +641,21 @@ stages:
           - key: deliverableFiles
             type: string[]
             description: All files produced
-          - key: factCheckPassed
+          - key: formattingPassed
             type: boolean
-            description: Whether all claims have on-chain evidence
+            description: Whether all deliverables meet formatting standards
+          - key: completenessPassed
+            type: boolean
+            description: Whether all planned deliverables were produced with required sections
+          - key: factCheckApplied
+            type: boolean
+            description: Whether all fact-check corrections were applied to deliverables
+          - key: issuesFound
+            type: string[]
+            description: Formatting or completeness issues that need attention
+          - key: fixesApplied
+            type: string[]
+            description: Issues that were auto-fixed during review
           - key: summary
             type: string
             description: Final summary of all deliverables
