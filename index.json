@@ -1,7 +1,19 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:27:27.037Z",
+  "updated_at": "2026-04-13T13:28:33.915Z",
   "packages": [
+    {
+      "name": "completion-anti-patterns",
+      "version": "1.0.0",
+      "type": "fragment",
+      "description": "Anti-patterns for task completion claims and verification requirements",
+      "author": "workflow-control",
+      "tags": [
+        "verification",
+        "completion",
+        "quality"
+      ]
+    },
     {
       "name": "constitution",
       "version": "1.0.0",
