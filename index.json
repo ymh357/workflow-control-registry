@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:32:21.929Z",
+  "updated_at": "2026-04-13T13:32:37.465Z",
   "packages": [
     {
       "name": "completion-anti-patterns",
@@ -374,6 +374,18 @@
         "mixed"
       ],
       "engine_compat": "mixed"
+    },
+    {
+      "name": "testing-anti-patterns",
+      "version": "1.0.0",
+      "type": "fragment",
+      "description": "Testing anti-patterns and red flags to avoid when writing tests",
+      "author": "workflow-control",
+      "tags": [
+        "testing",
+        "anti-patterns",
+        "quality"
+      ]
     },
     {
       "name": "typescript-strict",
