@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:30:38.765Z",
+  "updated_at": "2026-04-13T13:31:12.346Z",
   "packages": [
     {
       "name": "completion-anti-patterns",
@@ -109,6 +109,17 @@
         "optimization",
         "audit"
       ]
+    },
+    {
+      "name": "pipeline-generator",
+      "version": "1.0.0",
+      "type": "pipeline",
+      "description": "Generate high-quality pipelines from natural language descriptions. Analyzes requirements, designs architecture, generates YAML skeleton and system prompts in parallel, validates, and persists to disk.",
+      "author": "workflow-control",
+      "tags": [
+        "claude"
+      ],
+      "engine_compat": "claude"
     },
     {
       "name": "playwright-e2e-test-loop",
