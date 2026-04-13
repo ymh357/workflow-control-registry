@@ -1,0 +1,34 @@
+name: tech-research
+version: 1.0.0
+type: pipeline
+description: >
+  General-purpose technology research pipeline. Supports Web3 protocols, open-source tools,
+  commercial products, technical concepts, and architecture decisions. Dynamically adapts
+  research strategy, information sources, and verification methods based on subject type
+  classification.
+author: workflow-control
+tags:
+  - research
+  - technology
+  - analysis
+  - claude
+engine_compat: claude
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/benchmark-verification.md
+  - prompts/system/claims-cross-check.md
+  - prompts/system/community-intel.md
+  - prompts/system/competitor-benchmark.md
+  - prompts/system/context-scan.md
+  - prompts/system/domain-research.md
+  - prompts/system/fact-check.md
+  - prompts/system/final-review.md
+  - prompts/system/landscape-analysis.md
+  - prompts/system/merge-sources.md
+  - prompts/system/onchain-verification.md
+  - prompts/system/oss-health-check.md
+  - prompts/system/output-planning.md
+  - prompts/system/pain-point-analysis.md
+  - prompts/system/solution-design.md
+  - prompts/system/source-code-analysis.md
