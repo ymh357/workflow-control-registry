@@ -5,8 +5,8 @@ description: Analyzes a pull request by running security scanning and performanc
   findings into a review comment, and posts it to GitHub after human approval.
 author: workflow-control
 tags:
-  - claude
-engine_compat: claude
+  - gemini
+engine_compat: gemini
 files:
   - pipeline.yaml
   - prompts/global-constraints.md
