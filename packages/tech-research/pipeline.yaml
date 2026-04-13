@@ -1,0 +1,1036 @@
+name: Tech Research — Multi-Domain Investigation Pipeline
+description: >
+  General-purpose technology research pipeline. Supports Web3 protocols, open-source tools,
+  commercial products, technical concepts, and architecture decisions. Dynamically adapts
+  research strategy, information sources, and verification methods based on subject type
+  classification. Enforces primary-source-first research and independent fact-checking.
+  On-chain / code / claims verification runs BEFORE content production.
+  Supports two modes: "full" (product optimization with benchmarks, pain points,
+  solution design) and "explore" (greenfield research with lightweight landscape analysis).
+engine: claude
+use_cases:
+  - Evaluate a Web3 protocol for integration
+  - Compare open-source developer tools (e.g., AI coding assistants)
+  - Assess commercial SaaS products for team adoption
+  - Deep-dive a technical concept or algorithm
+  - Make an informed architecture or technology choice
+  - Produce technical reports, comparison guides, decision documents
+display:
+  title_path: domainKnowledge.summary
+  completion_summary_path: finalOutput.summary
+claude_md:
+  global: global-constraints.md
+stages:
+  # ── Phase 0: Classify + Plan ──────────────────────────────────────
+
+  - name: contextScan
+    type: agent
+    thinking:
+      type: enabled
+    interactive: true
+    effort: high
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: context-scan
+      writes:
+        - projectContext
+        - pipelineConfig
+    outputs:
+      pipelineConfig:
+        type: object
+        label: Pipeline Configuration
+        fields:
+          - key: research_topic
+            type: string
+            description: The technical domain to investigate
+          - key: target_project
+            type: string
+            description: The project this research serves (may be empty for explore mode)
+          - key: task_mode
+            type: string
+            description: "Pipeline mode: 'full' (product optimization) or 'explore' (greenfield research)"
+          - key: output_types
+            type: string[]
+            description: "Desired deliverables: tutorial, technical-report, dev-guide, impl-plan, optimization-report"
+          - key: competitor_products
+            type: string[]
+            description: Products to benchmark against (full mode only)
+          - key: subject_type
+            type: string
+            description: "Research subject classification: web3_protocol | oss_tool | commercial_product | technical_concept | architecture_decision | hybrid"
+          - key: targets
+            type: object[]
+            description: "Per-target classification for multi-target research. Each entry: {name, subject_type, source_code_repo, community_channels[]}"
+          - key: verification_strategy
+            type: string
+            description: "Primary verification method: onchain | oss_scorecard | claims_crosscheck | benchmark_reproduction"
+          - key: evaluation_dimensions
+            type: string[]
+            description: Applicable evaluation dimensions for this research subject
+          - key: has_source_code
+            type: boolean
+            description: Whether source code is available for analysis (open-source, leaked, or decompilable)
+          - key: source_code_repos
+            type: string[]
+            description: GitHub/GitLab repo URLs for source code analysis
+          - key: community_channels
+            type: string[]
+            description: Community channel URLs for sentiment/feedback collection
+      projectContext:
+        type: object
+        label: Project Context
+        fields:
+          - key: knownFacts
+            type: string[]
+            description: What we already know from internal sources
+          - key: openQuestions
+            type: string[]
+            description: Questions that need answering
+          - key: existingDocs
+            type: string[]
+            description: Relevant internal documents found
+          - key: summary
+            type: string
+            description: One-paragraph context summary
+
+  - name: researchProtocol
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: contextScan
+
+  # ── Phase 1: Collect Sources ───────────────────────────────────────
+
+  # For multi-target research, primarySourceCollection runs per-target via foreach.
+  # For single-target research, targets[] has one entry and foreach runs once.
+  - name: collectPrimarySources
+    type: foreach
+    runtime:
+      engine: foreach
+      items: store.pipelineConfig.targets
+      item_var: current_target
+      pipeline_name: tech-research-collector
+      max_concurrency: 5
+      collect_to: collectedSources
+      item_writes:
+        - targetSources
+      on_item_error: continue
+      reads:
+        current_target: current_target
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+
+  # Merge per-target collected sources into a unified primarySources store
+  - name: mergeSources
+    type: agent
+    effort: medium
+    max_turns: 20
+    max_budget_usd: 1
+    runtime:
+      engine: llm
+      system_prompt: merge-sources
+      writes:
+        - primarySources
+      reads:
+        pipelineConfig: pipelineConfig
+        collectedSources: collectedSources
+    outputs:
+      primarySources:
+        type: object
+        label: Primary Source Data (Merged)
+        fields:
+          - key: officialSourceCount
+            type: number
+            description: Total official sources consulted across all targets
+            display_hint: badge
+          - key: spaWarnings
+            type: string[]
+            description: URLs that returned empty/partial content due to SPA rendering
+          - key: perTargetSummary
+            type: string[]
+            description: "One-line summary per target: '{target_name}: {source_count} sources, {key_finding}'"
+          - key: sourceCatalog
+            type: string[]
+            description: "Catalog of ALL official URLs consulted: '{url} | {target} | {status} | {notes}'"
+          - key: reportPath
+            type: string
+            description: File path to merged source notes
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph merged summary
+
+  # ── Phase 1b: Conditional Source Code Analysis ─────────────────────
+
+  - name: routeSourceCode
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.has_source_code == true
+          to: sourceCodeAnalysis
+        - default: true
+          to: routeCommunityIntel
+
+  - name: sourceCodeAnalysis
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 50
+    max_budget_usd: 5
+    runtime:
+      engine: llm
+      system_prompt: source-code-analysis
+      writes:
+        - sourceCodeFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+    outputs:
+      sourceCodeFacts:
+        type: object
+        label: Source Code Analysis
+        fields:
+          - key: reposAnalyzed
+            type: number
+            description: Number of repos analyzed
+            display_hint: badge
+          - key: languageBreakdown
+            type: string[]
+            description: "Per-repo language breakdown: '{repo}: {lang1} X%, {lang2} Y%'"
+          - key: architecturePattern
+            type: string
+            description: "Observed architecture pattern (monolith, modular, plugin-based, microservices, etc.)"
+          - key: keyFindings
+            type: string[]
+            description: Key architectural findings with file path evidence
+          - key: extensionPoints
+            type: string[]
+            description: Identified extension points and API surfaces
+          - key: codeHealthSignals
+            type: string[]
+            description: "Code health signals: test coverage, CI status, dependency count, lint config"
+          - key: securityFlags
+            type: string[]
+            description: "Security-relevant observations labeled [Code observation]"
+          - key: confidenceLevel
+            type: string
+            description: "Overall confidence: high (clean source) | medium (partial/large) | low (obfuscated/reconstructed)"
+          - key: reportPath
+            type: string
+            description: File path to source code analysis report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  # ── Phase 1c: Conditional Community Intelligence ───────────────────
+
+  - name: routeCommunityIntel
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.subject_type == 'technical_concept'
+          to: domainResearch
+        - default: true
+          to: communityIntel
+
+  - name: communityIntel
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: community-intel
+      writes:
+        - communityIntel
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+    outputs:
+      communityIntel:
+        type: object
+        label: Community Intelligence
+        fields:
+          - key: channelsScanned
+            type: number
+            description: Number of community channels analyzed
+            display_hint: badge
+          - key: sentimentScore
+            type: string
+            description: "Overall sentiment: positive | neutral | negative | mixed | insufficient_data"
+          - key: topComplaints
+            type: string[]
+            description: "Top complaints with source count: '{complaint} ({count} sources, latest: {date})'"
+          - key: topPraise
+            type: string[]
+            description: "Top praised aspects with source count: '{praise} ({count} sources, latest: {date})'"
+          - key: communitySize
+            type: string[]
+            description: "Per-channel size signals: '{channel}: {metric}'"
+          - key: documentationGaps
+            type: string[]
+            description: Common questions indicating documentation or onboarding gaps
+          - key: reportPath
+            type: string
+            description: File path to community intel report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  # ── Phase 2: Domain Research (always runs) ─────────────────────────
+
+  - name: domainResearch
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 40
+    max_budget_usd: 3
+    runtime:
+      engine: llm
+      system_prompt: domain-research
+      writes:
+        - domainKnowledge
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        primarySources: primarySources
+        sourceCodeFacts: sourceCodeFacts
+        communityIntel: communityIntel
+    outputs:
+      domainKnowledge:
+        type: object
+        label: Domain Knowledge
+        fields:
+          - key: sourceCount
+            type: number
+            description: Number of third-party sources consulted
+            display_hint: badge
+          - key: protocolCount
+            type: number
+            description: Number of protocols/solutions/products enumerated
+            display_hint: badge
+          - key: protocols
+            type: string[]
+            description: All protocols/products identified in this domain
+          - key: ecosystemStatus
+            type: string[]
+            description: Per-protocol/product deployment status and positioning
+          - key: conceptMap
+            type: string[]
+            description: Ordered concept dependency chain
+          - key: conflictsWithPrimary
+            type: string[]
+            description: Data points where third-party sources contradict primary sources
+          - key: reportPath
+            type: string
+            description: File path to full research notes
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph research summary
+
+  # ── Phase 2b: Dynamic Verification Route ───────────────────────────
+
+  - name: routeVerification
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.verification_strategy == 'onchain'
+          to: onchainVerification
+        - when: store.pipelineConfig.verification_strategy == 'oss_scorecard'
+          to: ossHealthCheck
+        - when: store.pipelineConfig.verification_strategy == 'benchmark_reproduction'
+          to: benchmarkVerification
+        - default: true
+          to: claimsCrossCheck
+
+  - name: onchainVerification
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 50
+    max_budget_usd: 4
+    runtime:
+      engine: llm
+      system_prompt: onchain-verification
+      exclusive_write_group: verification
+      writes:
+        - verificationFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+    outputs:
+      verificationFacts:
+        type: object
+        label: On-Chain Verification Results
+        fields:
+          - key: verifiedClaims
+            type: number
+            description: Number of claims verified
+            display_hint: badge
+          - key: correctionsFound
+            type: number
+            description: Number of corrections vs initial assumptions
+            display_hint: badge
+          - key: corrections
+            type: string[]
+            description: List of corrections (assumption -> verified fact)
+          - key: contractAddresses
+            type: string[]
+            description: Key contract addresses verified
+          - key: tokenTopology
+            type: string
+            description: Token/asset system summary across chains
+          - key: securityFindings
+            type: string[]
+            description: Security-relevant findings (owner type, multisig, admin keys)
+          - key: dataConfidenceNotes
+            type: string[]
+            description: Per-claim confidence level and source tier
+          - key: reportPath
+            type: string
+            description: File path to verification report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph verification summary
+
+  - name: ossHealthCheck
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 35
+    max_budget_usd: 3
+    runtime:
+      engine: llm
+      system_prompt: oss-health-check
+      exclusive_write_group: verification
+      writes:
+        - verificationFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+        sourceCodeFacts: sourceCodeFacts
+    outputs:
+      verificationFacts:
+        type: object
+        label: OSS Health Check Results
+        fields:
+          - key: verifiedClaims
+            type: number
+            description: Number of claims verified via GitHub/Scorecard
+            display_hint: badge
+          - key: correctionsFound
+            type: number
+            description: Number of corrections vs primary source data
+            display_hint: badge
+          - key: corrections
+            type: string[]
+            description: List of corrections (claimed -> actual)
+          - key: healthScores
+            type: string[]
+            description: "Per-repo health assessment: '{repo}: {score_summary}'"
+          - key: githubMetrics
+            type: string[]
+            description: "Per-repo metrics: stars, active contributors, bus factor, last release, issue response time"
+          - key: licenseFindings
+            type: string[]
+            description: License type, recent changes, compatibility notes
+          - key: dataConfidenceNotes
+            type: string[]
+            description: Per-claim confidence level and source tier
+          - key: reportPath
+            type: string
+            description: File path to health check report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  - name: claimsCrossCheck
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: claims-cross-check
+      exclusive_write_group: verification
+      writes:
+        - verificationFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+    outputs:
+      verificationFacts:
+        type: object
+        label: Claims Cross-Check Results
+        fields:
+          - key: verifiedClaims
+            type: number
+            description: Number of claims cross-checked
+            display_hint: badge
+          - key: correctionsFound
+            type: number
+            description: Number of corrections found
+            display_hint: badge
+          - key: corrections
+            type: string[]
+            description: List of corrections (claimed -> verified)
+          - key: pricingVerification
+            type: string[]
+            description: Pricing claims verified against current pricing pages
+          - key: featureVerification
+            type: string[]
+            description: Feature claims verified against changelogs/release notes
+          - key: dataConfidenceNotes
+            type: string[]
+            description: Per-claim confidence level and source tier
+          - key: reportPath
+            type: string
+            description: File path to cross-check report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  - name: benchmarkVerification
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: benchmark-verification
+      exclusive_write_group: verification
+      writes:
+        - verificationFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+    outputs:
+      verificationFacts:
+        type: object
+        label: Benchmark Verification Results
+        fields:
+          - key: verifiedClaims
+            type: number
+            description: Number of benchmark claims assessed
+            display_hint: badge
+          - key: correctionsFound
+            type: number
+            description: Number of credibility issues found
+            display_hint: badge
+          - key: corrections
+            type: string[]
+            description: List of benchmark credibility issues
+          - key: benchmarkAssessments
+            type: string[]
+            description: "Per-benchmark assessment: '{benchmark}: {classification} | {credibility_rating} | {notes}'"
+          - key: dataConfidenceNotes
+            type: string[]
+            description: Per-claim confidence level and source tier
+          - key: reportPath
+            type: string
+            description: File path to benchmark verification report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  # ── Phase 2c: Secondary verification for hybrid (OSS subset) ───────
+
+  - name: routeSecondaryVerification
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.subject_type == 'hybrid' and store.pipelineConfig.has_source_code == true
+          to: ossHealthCheckSecondary
+        - default: true
+          to: routeAnalysis
+
+  - name: ossHealthCheckSecondary
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 25
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: oss-health-check
+      writes:
+        - ossHealthFacts
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        sourceCodeFacts: sourceCodeFacts
+    outputs:
+      ossHealthFacts:
+        type: object
+        label: OSS Health (Secondary Pass)
+        fields:
+          - key: verifiedClaims
+            type: number
+            description: Number of OSS-specific claims verified
+            display_hint: badge
+          - key: corrections
+            type: string[]
+            description: Corrections specific to OSS targets
+          - key: healthScores
+            type: string[]
+            description: Per-repo health scores for OSS subset
+          - key: summary
+            type: string
+            description: One-paragraph summary of OSS health findings
+
+  # ── Phase 3: Analysis Route ────────────────────────────────────────
+
+  - name: routeAnalysis
+    type: condition
+    runtime:
+      engine: condition
+      branches:
+        - when: store.pipelineConfig.task_mode == 'full'
+          to: awaitingVerificationReview
+        - default: true
+          to: landscapeAnalysis
+
+  # ── Full mode: Gate + Deep Analysis ────────────────────────────────
+
+  - name: awaitingVerificationReview
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: domainResearch
+      notify:
+        type: slack
+        template: verification-ready
+
+  - name: competitorBenchmark
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 40
+    max_budget_usd: 3
+    runtime:
+      engine: llm
+      system_prompt: competitor-benchmark
+      writes:
+        - benchmarkResults
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        verificationFacts: verificationFacts
+        domainKnowledge: domainKnowledge
+    outputs:
+      benchmarkResults:
+        type: object
+        label: Competitor Benchmark
+        fields:
+          - key: productsCompared
+            type: string[]
+            description: Products that were benchmarked
+          - key: txEvidence
+            type: string[]
+            description: Transaction hashes or evidence URLs used
+          - key: dimensionsCovered
+            type: string[]
+            description: Comparison dimensions
+          - key: reportPath
+            type: string
+            description: File path to benchmark report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph benchmark summary
+
+  - name: painPointAnalysis
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: pain-point-analysis
+      writes:
+        - painPoints
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        primarySources: primarySources
+        verificationFacts: verificationFacts
+        domainKnowledge: domainKnowledge
+        benchmarkResults: benchmarkResults
+    outputs:
+      painPoints:
+        type: object
+        label: Pain Point Analysis
+        fields:
+          - key: totalCount
+            type: number
+            description: Total pain points identified
+            display_hint: badge
+          - key: criticalCount
+            type: number
+            description: Number of critical/fatal issues
+            display_hint: badge
+          - key: painPointList
+            type: string[]
+            description: Pain points with severity tags
+          - key: rootCauses
+            type: string[]
+            description: Root cause -> resolvable layer mapping
+          - key: reportPath
+            type: string
+            description: File path to full analysis
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  - name: solutionDesign
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 40
+    max_budget_usd: 3
+    runtime:
+      engine: llm
+      system_prompt: solution-design
+      writes:
+        - solutionPlan
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        verificationFacts: verificationFacts
+        domainKnowledge: domainKnowledge
+        benchmarkResults: benchmarkResults
+        painPoints: painPoints
+    outputs:
+      solutionPlan:
+        type: object
+        label: Solution Design
+        fields:
+          - key: pathCount
+            type: number
+            description: Number of solution paths proposed
+            display_hint: badge
+          - key: paths
+            type: string[]
+            description: Solution path names
+          - key: recommendedPath
+            type: string
+            description: Recommended path with phased breakdown
+          - key: riskCount
+            type: number
+            description: Total risks identified
+            display_hint: badge
+          - key: reportPath
+            type: string
+            description: File path to solution design
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  - name: awaitingSolutionReview
+    type: human_confirm
+    runtime:
+      engine: human_gate
+      on_reject_to: solutionDesign
+      notify:
+        type: slack
+        template: solution-ready
+
+  # ── Explore mode: Lightweight Landscape Analysis ───────────────────
+
+  - name: landscapeAnalysis
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: landscape-analysis
+      writes:
+        - landscapeResults
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        verificationFacts: verificationFacts
+        domainKnowledge: domainKnowledge
+    outputs:
+      landscapeResults:
+        type: object
+        label: Landscape Analysis
+        fields:
+          - key: competitorsIdentified
+            type: number
+            description: Number of competing products/protocols analyzed
+            display_hint: badge
+          - key: competitors
+            type: string[]
+            description: List of competitor names
+          - key: positioningMatrix
+            type: string
+            description: Competitive positioning summary (markdown table)
+          - key: marketGaps
+            type: string[]
+            description: Identified gaps or underserved niches
+          - key: adoptionSignals
+            type: string[]
+            description: Per-competitor traction evidence with source URLs
+          - key: reportPath
+            type: string
+            description: File path to landscape analysis
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  # ── Phase 4: Produce ───────────────────────────────────────────────
+
+  - name: outputPlanning
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 30
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: output-planning
+      writes:
+        - outputPlan
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+        verificationFacts: verificationFacts
+        sourceCodeFacts: sourceCodeFacts
+        communityIntel: communityIntel
+        benchmarkResults: benchmarkResults
+        painPoints: painPoints
+        solutionPlan: solutionPlan
+        landscapeResults: landscapeResults
+    outputs:
+      outputPlan:
+        type: object
+        label: Output Plan
+        fields:
+          - key: deliverableCount
+            type: number
+            description: Number of deliverables planned
+          - key: deliverables
+            type: string[]
+            description: List of deliverable identifiers (used by foreach iteration)
+          - key: outlinePath
+            type: string
+            description: File path to the full outline
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph output plan summary
+
+  - name: produceDeliverables
+    type: foreach
+    runtime:
+      engine: foreach
+      items: store.outputPlan.deliverables
+      item_var: current_deliverable
+      pipeline_name: tech-research-writer
+      max_concurrency: 2
+      collect_to: writtenDeliverables
+      item_writes:
+        - deliverableResult
+      on_item_error: continue
+      reads:
+        current_deliverable: current_deliverable
+        pipelineConfig: pipelineConfig
+        outputPlan: outputPlan
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+        verificationFacts: verificationFacts
+        sourceCodeFacts: sourceCodeFacts
+        communityIntel: communityIntel
+        ossHealthFacts: ossHealthFacts
+        benchmarkResults: benchmarkResults
+        painPoints: painPoints
+        solutionPlan: solutionPlan
+        landscapeResults: landscapeResults
+        projectContext: projectContext
+
+  # ── Phase 5: Verify + Finalize ─────────────────────────────────────
+
+  - name: factCheck
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 35
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: fact-check
+      writes:
+        - factCheckResults
+      reads:
+        pipelineConfig: pipelineConfig
+        primarySources: primarySources
+        domainKnowledge: domainKnowledge
+        verificationFacts: verificationFacts
+        writtenDeliverables: writtenDeliverables
+    outputs:
+      factCheckResults:
+        type: object
+        label: Fact Check Results
+        fields:
+          - key: claimsChecked
+            type: number
+            description: Number of key claims independently re-verified
+            display_hint: badge
+          - key: issuesFound
+            type: number
+            description: Number of factual issues discovered
+            display_hint: badge
+          - key: externalSourcesUsed
+            type: string[]
+            description: External URLs re-fetched for independent verification
+          - key: verifiedClaims
+            type: string[]
+            description: Claims that passed independent verification
+          - key: failedClaims
+            type: string[]
+            description: Claims that failed verification with explanation
+          - key: corrections
+            type: string[]
+            description: Specific text corrections applied to deliverables
+          - key: structuredCorrections
+            type: object[]
+            description: "Machine-readable corrections for engine processing"
+            fields:
+              - key: file
+                type: string
+                description: File path of the deliverable containing the error
+              - key: location
+                type: string
+                description: "Section or line identifier where the error appears"
+              - key: oldValue
+                type: string
+                description: The incorrect value currently in the deliverable
+              - key: newValue
+                type: string
+                description: The corrected value
+              - key: sourceUrl
+                type: string
+                description: URL of the source that confirms the correction
+              - key: reason
+                type: string
+                description: Brief explanation of why this is a correction
+          - key: confidenceScore
+            type: string
+            description: "Overall confidence: high | medium | low"
+          - key: reportPath
+            type: string
+            description: File path to fact-check report
+            display_hint: link
+          - key: summary
+            type: string
+            description: One-paragraph summary
+
+  - name: finalReview
+    type: agent
+    thinking:
+      type: enabled
+    effort: medium
+    max_turns: 40
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: final-review
+      writes:
+        - finalOutput
+      reads:
+        pipelineConfig: pipelineConfig
+        outputPlan: outputPlan
+        writtenDeliverables: writtenDeliverables
+        factCheckResults: factCheckResults
+    outputs:
+      finalOutput:
+        type: object
+        label: Final Output
+        fields:
+          - key: deliverableFiles
+            type: string[]
+            description: All files produced
+          - key: formattingPassed
+            type: boolean
+            description: Whether all deliverables meet formatting standards
+          - key: completenessPassed
+            type: boolean
+            description: Whether all planned deliverables were produced
+          - key: factCheckApplied
+            type: boolean
+            description: Whether all fact-check corrections were applied
+          - key: issuesFound
+            type: string[]
+            description: Issues that need attention
+          - key: fixesApplied
+            type: string[]
+            description: Issues that were auto-fixed during review
+          - key: qualityScorecard
+            type: object
+            description: "Structured quality assessment for pipeline completion dashboard"
+            fields:
+              - key: sourceCount
+                type: number
+                description: Total unique sources cited across all deliverables
+              - key: verifiedClaimsRatio
+                type: string
+                description: "Ratio of verified claims to total quantitative claims (e.g., '42/50')"
+              - key: tier1FactRatio
+                type: string
+                description: "Ratio of Tier 1-3 sourced facts to total facts (e.g., '35/50')"
+              - key: gapCount
+                type: number
+                description: Number of data gaps or unverifiable claims remaining
+              - key: confidenceScore
+                type: string
+                description: "Overall confidence: high | medium | low — inherited from factCheck and adjusted by editorial findings"
+              - key: grade
+                type: string
+                description: "Letter grade: A (publish-ready) | B (minor issues) | C (significant gaps) | D (major rework needed)"
+          - key: summary
+            type: string
+            description: Final summary of all deliverables
