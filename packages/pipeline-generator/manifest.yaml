@@ -1,0 +1,17 @@
+name: pipeline-generator
+version: 1.0.0
+type: pipeline
+description: Generate high-quality pipelines from natural language descriptions. Analyzes requirements, designs
+  architecture, generates YAML skeleton and system prompts in parallel, validates, and persists to disk.
+author: workflow-control
+tags:
+  - claude
+engine_compat: claude
+files:
+  - pipeline.yaml
+  - prompts/fix-validator.md
+  - prompts/system/analysis.md
+  - prompts/system/gen-prompts.md
+  - prompts/system/gen-skeleton.md
+  - prompts/system/refine-prompts.md
+  - prompts/system/report-generator.md
