@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:09:47.429Z",
+  "updated_at": "2026-04-13T13:10:16.548Z",
   "packages": [
     {
       "name": "constitution",
@@ -240,6 +240,19 @@
         "mixed"
       ],
       "engine_compat": "mixed"
+    },
+    {
+      "name": "tech-research-writer",
+      "version": "1.0.0",
+      "type": "pipeline",
+      "description": "Sub-pipeline for writing individual tech research deliverables. Invoked by tech-research foreach.",
+      "author": "workflow-control",
+      "tags": [
+        "research",
+        "writing",
+        "sub-pipeline"
+      ],
+      "engine_compat": "claude"
     },
     {
       "name": "test-integration",
