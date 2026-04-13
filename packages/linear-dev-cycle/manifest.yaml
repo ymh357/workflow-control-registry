@@ -1,0 +1,27 @@
+name: linear-dev-cycle
+version: 1.0.0
+type: pipeline
+description: End-to-end development workflow driven by Linear tickets. Gathers context from Linear, Notion, and Figma,
+  plans implementation with human approval, implements code, runs tests, verifies CI, and submits a GitLab merge
+  request.
+author: workflow-control
+tags:
+  - claude
+engine_compat: claude
+dependencies:
+  skills:
+    - finishing-branch
+    - security-review
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/create-branch.md
+  - prompts/system/extract-figma-from-notion.md
+  - prompts/system/extract-figma.md
+  - prompts/system/fetch-ticket.md
+  - prompts/system/gather-notion.md
+  - prompts/system/implement.md
+  - prompts/system/plan-implementation.md
+  - prompts/system/submit-merge-request.md
+  - prompts/system/test-and-fix.md
+  - prompts/system/verify-ci.md
