@@ -1,0 +1,13 @@
+name: tech-research-collector
+version: 1.0.0
+type: pipeline
+description: "Sub-pipeline for per-target primary source collection. Invoked by tech-research foreach."
+author: workflow-control
+tags:
+  - research
+  - sub-pipeline
+engine_compat: claude
+files:
+  - pipeline.yaml
+  - prompts/global-constraints.md
+  - prompts/system/collect-target-sources.md
