@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T03:54:58.398703+00:00",
+  "updated_at": "2026-04-13T13:09:07.668Z",
   "packages": [
     {
       "name": "constitution",
@@ -255,7 +255,7 @@
       "name": "test-mixed",
       "version": "1.0.0",
       "type": "pipeline",
-      "description": "Test pipeline \u2014 Gemini for analysis (cheaper), Claude for implementation (stronger coding)",
+      "description": "Test pipeline — Gemini for analysis (cheaper), Claude for implementation (stronger coding)",
       "author": "workflow-control",
       "tags": [
         "mixed"
