@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:16:22.680Z",
+  "updated_at": "2026-04-13T13:18:21.022Z",
   "packages": [
     {
       "name": "constitution",
@@ -240,6 +240,18 @@
         "mixed"
       ],
       "engine_compat": "mixed"
+    },
+    {
+      "name": "tech-research-collector",
+      "version": "1.0.0",
+      "type": "pipeline",
+      "description": "Sub-pipeline for per-target primary source collection. Invoked by tech-research foreach.",
+      "author": "workflow-control",
+      "tags": [
+        "research",
+        "sub-pipeline"
+      ],
+      "engine_compat": "claude"
     },
     {
       "name": "tech-research-writer",
