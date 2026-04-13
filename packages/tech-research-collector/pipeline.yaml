@@ -1,0 +1,51 @@
+name: "Tech Research Collector"
+description: "Sub-pipeline that collects primary sources for a single research target. Invoked per-item by tech-research foreach."
+engine: claude
+injected_context:
+  - pipelineConfig
+  - projectContext
+stages:
+  - name: collectTargetSources
+    type: agent
+    thinking:
+      type: enabled
+    effort: high
+    max_turns: 35
+    max_budget_usd: 2
+    runtime:
+      engine: llm
+      system_prompt: collect-target-sources
+      writes:
+        - targetSources
+      reads:
+        pipelineConfig: pipelineConfig
+        projectContext: projectContext
+    outputs:
+      targetSources:
+        type: object
+        label: Target Source Data
+        fields:
+          - key: targetName
+            type: string
+            description: Name of the target being researched
+          - key: subjectType
+            type: string
+            description: Subject type of this specific target
+          - key: officialSourceCount
+            type: number
+            description: Number of official sources consulted
+          - key: spaWarnings
+            type: string[]
+            description: URLs blocked by SPA rendering
+          - key: sourceCatalog
+            type: string[]
+            description: "All URLs consulted: '{url} | {status} | {notes}'"
+          - key: extractedFacts
+            type: string[]
+            description: "Key facts extracted with source: '{fact} — Source: {url}'"
+          - key: reportPath
+            type: string
+            description: File path to per-target source notes
+          - key: summary
+            type: string
+            description: One-paragraph summary
