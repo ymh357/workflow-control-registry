@@ -47,11 +47,11 @@ Now search the web. Third-party research serves these purposes:
 4. **Industry risk data** — hacks, exploits, outages, post-mortems
 5. **Market data for the target project** — price, volume, exchange listings, on-chain metrics (these are external observations, not project claims)
 
-Source priority within Phase 3:
-- **Tier 1**: Protocol official documentation, GitHub repos, audits, on-chain data
-- **Tier 2**: Aggregators with methodology (DefiLlama, L2Beat, Dune Analytics dashboards with visible queries)
-- **Tier 3**: Crypto media and analyst articles (The Block, Messari, Delphi Digital)
-- **Tier 4**: Exchange listings, social media, press releases
+Source priority within Phase 3 (highest to lowest reliability):
+- **Most reliable**: Protocol official documentation, GitHub repos, audits, on-chain data → label as `[Docs claim]` or `[On-chain verified]`
+- **Reliable with caveats**: Aggregators with methodology (DefiLlama, L2Beat, Dune Analytics dashboards with visible queries) → label as `[Aggregator data]`
+- **Context only**: Crypto media and analyst articles (The Block, Messari, Delphi Digital) → label as `[Third-party claim]`
+- **Lowest priority**: Exchange listings, social media, press releases → label as `[Third-party claim]`
 
 When a Tier 3/4 source makes a factual claim about the target project (tokenomics, team allocation, architecture), cross-check against `primarySources` immediately. See Contradiction Detection below.
 
