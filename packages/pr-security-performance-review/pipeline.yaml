@@ -2,7 +2,7 @@ name: pr-security-performance-review
 description: Analyzes a pull request by running security scanning and
   performance testing in parallel, synthesizes findings into a review comment,
   and posts it to GitHub after human approval.
-engine: claude
+engine: gemini
 use_cases:
   - Automated security vulnerability detection on incoming PRs
   - Performance regression identification before merging
