@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:31:12.346Z",
+  "updated_at": "2026-04-13T13:31:54.759Z",
   "packages": [
     {
       "name": "completion-anti-patterns",
@@ -118,6 +118,20 @@
       "author": "workflow-control",
       "tags": [
         "claude"
+      ],
+      "engine_compat": "claude"
+    },
+    {
+      "name": "plan-then-execute",
+      "version": "1.0.0",
+      "type": "pipeline",
+      "description": "Superpowers-inspired pipeline enforcing brainstorm -> plan -> execute -> verify flow. Ensures design is approved before implementation begins and all work is verified before completion.\n",
+      "author": "workflow-control",
+      "tags": [
+        "planning",
+        "execution",
+        "verification",
+        "superpowers"
       ],
       "engine_compat": "claude"
     },
