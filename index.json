@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:28:33.915Z",
+  "updated_at": "2026-04-13T13:28:51.598Z",
   "packages": [
     {
       "name": "completion-anti-patterns",
@@ -61,6 +61,18 @@
         "frontend",
         "philosophy",
         "best-practices"
+      ]
+    },
+    {
+      "name": "invariants-library",
+      "version": "1.0.0",
+      "type": "fragment",
+      "description": "Reusable invariant templates for common pipeline patterns",
+      "author": "workflow-control",
+      "tags": [
+        "invariants",
+        "constraints",
+        "quality"
       ]
     },
     {
