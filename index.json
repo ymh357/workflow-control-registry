@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T13:19:50.518Z",
+  "updated_at": "2026-04-13T13:20:49.863Z",
   "packages": [
     {
       "name": "constitution",
@@ -338,7 +338,7 @@
       "name": "web3-tech-research",
       "version": "2.0.0",
       "type": "pipeline",
-      "description": "Research-driven pipeline for Web3 protocol selection, competitive analysis, and technical feasibility assessment. Enforces primary-source-first research and independent fact-checking to prevent the \"echo chamber\" anti-pattern. On-chain verification runs BEFORE content production. Supports two modes: \"full\" (product optimization with benchmarks, pain points, solution design) and \"explore\" (greenfield research with lightweight landscape analysis).",
+      "description": "Research-driven pipeline for Web3 protocol selection, competitive analysis, and technical feasibility assessment. Enforces primary-source-first research and independent fact-checking to prevent the \"echo chamber\" anti-pattern. On-chain verification runs BEFORE content production. Supports two modes: \"full\" (product optimization with benchmarks, pain points, solution design) and \"explore\" (greenfield research with lightweight landscape analysis).\n",
       "author": "workflow-control",
       "tags": [
         "claude"
