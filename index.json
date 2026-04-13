@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-03T02:36:39.537Z",
+  "updated_at": "2026-04-13T03:54:58.398703+00:00",
   "packages": [
     {
       "name": "constitution",
@@ -255,7 +255,7 @@
       "name": "test-mixed",
       "version": "1.0.0",
       "type": "pipeline",
-      "description": "Test pipeline — Gemini for analysis (cheaper), Claude for implementation (stronger coding)",
+      "description": "Test pipeline \u2014 Gemini for analysis (cheaper), Claude for implementation (stronger coding)",
       "author": "workflow-control",
       "tags": [
         "mixed"
@@ -297,6 +297,28 @@
         "wallet",
         "blockchain"
       ]
+    },
+    {
+      "name": "web3-research-writer",
+      "version": "2.0.0",
+      "type": "pipeline",
+      "description": "Sub-pipeline that writes a single research deliverable. Invoked per-item by web3-tech-research foreach.",
+      "author": "workflow-control",
+      "tags": [
+        "claude"
+      ],
+      "engine_compat": "claude"
+    },
+    {
+      "name": "web3-tech-research",
+      "version": "2.0.0",
+      "type": "pipeline",
+      "description": "Research-driven pipeline for Web3 protocol selection, competitive analysis, and technical feasibility assessment. Enforces primary-source-first research and independent fact-checking to prevent the \"echo chamber\" anti-pattern. On-chain verification runs BEFORE content production. Supports two modes: \"full\" (product optimization with benchmarks, pain points, solution design) and \"explore\" (greenfield research with lightweight landscape analysis).",
+      "author": "workflow-control",
+      "tags": [
+        "claude"
+      ],
+      "engine_compat": "claude"
     }
   ]
 }
