@@ -1,4 +1,5 @@
 name: Tech Research — Multi-Domain Investigation Pipeline
+version: "1.1.0"
 description: >
   General-purpose technology research pipeline. Supports Web3 protocols, open-source tools,
   commercial products, technical concepts, and architecture decisions. Dynamically adapts
@@ -132,7 +133,8 @@ stages:
       engine: llm
       system_prompt: merge-sources
       writes:
-        - primarySources
+        - key: primarySources
+          summary_prompt: "Summarize: total source count, per-target highlights, any SPA warnings, and top 3 most important findings."
       reads:
         pipelineConfig: pipelineConfig
         collectedSources: collectedSources
@@ -185,7 +187,8 @@ stages:
       engine: llm
       system_prompt: source-code-analysis
       writes:
-        - sourceCodeFacts
+        - key: sourceCodeFacts
+          summary_prompt: "Summarize: repos analyzed, architecture pattern, key findings, extension points, and security flags."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -250,7 +253,8 @@ stages:
       engine: llm
       system_prompt: community-intel
       writes:
-        - communityIntel
+        - key: communityIntel
+          summary_prompt: "Summarize: sentiment score, top complaints, top praise, community size signals, and documentation gaps."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -299,7 +303,8 @@ stages:
       engine: llm
       system_prompt: domain-research
       writes:
-        - domainKnowledge
+        - key: domainKnowledge
+          summary_prompt: "Summarize: source count, protocols enumerated, ecosystem status, concept dependency chain, and conflicts with primary sources."
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
@@ -367,7 +372,8 @@ stages:
       system_prompt: onchain-verification
       exclusive_write_group: verification
       writes:
-        - verificationFacts
+        - key: verificationFacts
+          summary_prompt: "Summarize: claims verified count, corrections found, contract addresses, token topology, and security findings."
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
@@ -421,7 +427,8 @@ stages:
       system_prompt: oss-health-check
       exclusive_write_group: verification
       writes:
-        - verificationFacts
+        - key: verificationFacts
+          summary_prompt: "Summarize: claims verified, corrections, per-repo health scores, GitHub metrics, and license findings."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -475,7 +482,8 @@ stages:
       system_prompt: claims-cross-check
       exclusive_write_group: verification
       writes:
-        - verificationFacts
+        - key: verificationFacts
+          summary_prompt: "Summarize: claims cross-checked, corrections found, pricing verification status, and feature verification status."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -525,7 +533,8 @@ stages:
       system_prompt: benchmark-verification
       exclusive_write_group: verification
       writes:
-        - verificationFacts
+        - key: verificationFacts
+          summary_prompt: "Summarize: benchmark claims assessed, credibility issues found, and per-benchmark classification with ratings."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -583,7 +592,8 @@ stages:
       engine: llm
       system_prompt: oss-health-check
       writes:
-        - ossHealthFacts
+        - key: ossHealthFacts
+          summary_prompt: "Summarize: OSS-specific claims verified, corrections, and per-repo health scores."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -641,7 +651,8 @@ stages:
       engine: llm
       system_prompt: competitor-benchmark
       writes:
-        - benchmarkResults
+        - key: benchmarkResults
+          summary_prompt: "Summarize: products compared, dimensions covered, key competitive advantages and disadvantages."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -680,7 +691,8 @@ stages:
       engine: llm
       system_prompt: pain-point-analysis
       writes:
-        - painPoints
+        - key: painPoints
+          summary_prompt: "Summarize: total pain points, critical count, top 3 pain points with severity, and root cause mapping."
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
@@ -726,7 +738,8 @@ stages:
       engine: llm
       system_prompt: solution-design
       writes:
-        - solutionPlan
+        - key: solutionPlan
+          summary_prompt: "Summarize: number of solution paths, recommended path with phases, key risks, and implementation timeline."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -783,7 +796,8 @@ stages:
       engine: llm
       system_prompt: landscape-analysis
       writes:
-        - landscapeResults
+        - key: landscapeResults
+          summary_prompt: "Summarize: competitors identified, positioning matrix highlights, market gaps, and top adoption signals."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -831,7 +845,8 @@ stages:
       engine: llm
       system_prompt: output-planning
       writes:
-        - outputPlan
+        - key: outputPlan
+          summary_prompt: "Summarize: deliverable count, deliverable types, and key structural decisions in the outline."
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
@@ -904,7 +919,8 @@ stages:
       engine: llm
       system_prompt: fact-check
       writes:
-        - factCheckResults
+        - key: factCheckResults
+          summary_prompt: "Summarize: claims checked, issues found, failed claims, corrections applied, and overall confidence score."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
