@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-14T04:41:28.901Z",
+  "updated_at": "2026-04-14T04:59:55.886Z",
   "packages": [
     {
       "name": "completion-anti-patterns",
@@ -317,7 +317,7 @@
     },
     {
       "name": "tech-research",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "type": "pipeline",
       "description": "General-purpose technology research pipeline. Supports Web3 protocols, open-source tools, commercial products, technical concepts, and architecture decisions. Dynamically adapts research strategy, information sources, and verification methods based on subject type classification.\n",
       "author": "workflow-control",
