@@ -23,7 +23,8 @@ stages:
       engine: llm
       system_prompt: analysis
       writes:
-        - pipelineDesign
+        - key: pipelineDesign
+          summary_prompt: "Summarize: pipeline name, stage count, parallel groups, recommended MCPs/skills, and key design decisions."
     outputs:
       pipelineDesign:
         type: object
@@ -98,7 +99,8 @@ stages:
             engine: llm
             system_prompt: gen-skeleton
             writes:
-              - pipelineYaml
+              - key: pipelineYaml
+                summary_prompt: "Summarize: stage count in generated YAML, any validation warnings, and whether parallel groups were used."
             reads:
               design: pipelineDesign
               contracts: pipelineDesign.stageContracts
@@ -123,7 +125,8 @@ stages:
             engine: llm
             system_prompt: gen-prompts
             writes:
-              - promptFiles
+              - key: promptFiles
+                summary_prompt: "Summarize: number of prompt files generated, whether global-constraints.md was included, and output directory."
             reads:
               design: pipelineDesign
               contracts: pipelineDesign.stageContracts
@@ -192,7 +195,8 @@ stages:
         pipelineYaml: pipelineYaml.pipeline
         pipelineDesign: pipelineDesign
       writes:
-        - refinedPromptFiles
+        - key: refinedPromptFiles
+          summary_prompt: "Summarize: number of prompts refined, key refinements applied, and output directory."
     outputs:
       refinedPromptFiles:
         type: object
