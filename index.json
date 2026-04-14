@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-14T04:40:40.934Z",
+  "updated_at": "2026-04-14T04:41:28.901Z",
   "packages": [
     {
       "name": "completion-anti-patterns",
@@ -112,7 +112,7 @@
     },
     {
       "name": "pipeline-generator",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "type": "pipeline",
       "description": "Generate high-quality pipelines from natural language descriptions. Analyzes requirements, designs architecture, generates YAML skeleton and system prompts in parallel, validates, and persists to disk.",
       "author": "workflow-control",
