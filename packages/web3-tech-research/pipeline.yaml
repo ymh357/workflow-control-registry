@@ -86,7 +86,8 @@ stages:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
       writes:
-        - primarySources
+        - key: primarySources
+          summary_prompt: "Summarize: official source count, SPA warnings, key architecture findings, GitHub activity signals, and governance model."
     outputs:
       primarySources:
         type: object
@@ -137,7 +138,8 @@ stages:
         projectContext: projectContext
         primarySources: primarySources
       writes:
-        - domainKnowledge
+        - key: domainKnowledge
+          summary_prompt: "Summarize: source count, protocols enumerated, ecosystem status, concept dependency chain, and conflicts with primary sources."
     outputs:
       domainKnowledge:
         type: object
@@ -194,7 +196,8 @@ stages:
       engine: llm
       system_prompt: onchain-verification
       writes:
-        - onchainFacts
+        - key: onchainFacts
+          summary_prompt: "Summarize: claims verified count, corrections found, contract addresses, token topology, and security findings."
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
@@ -244,7 +247,8 @@ stages:
       engine: llm
       system_prompt: onchain-spot-check
       writes:
-        - onchainFacts
+        - key: onchainFacts
+          summary_prompt: "Summarize: claims spot-checked, corrections found, contract addresses, aggregator sources used, and data confidence levels."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -316,7 +320,8 @@ stages:
       engine: llm
       system_prompt: competitor-benchmark
       writes:
-        - benchmarkResults
+        - key: benchmarkResults
+          summary_prompt: "Summarize: products compared, dimensions covered, key competitive advantages and disadvantages, and transaction evidence."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -355,7 +360,8 @@ stages:
       engine: llm
       system_prompt: pain-point-analysis
       writes:
-        - painPoints
+        - key: painPoints
+          summary_prompt: "Summarize: total pain points, critical count, top 3 pain points with severity, and root cause mapping."
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
@@ -401,7 +407,8 @@ stages:
       engine: llm
       system_prompt: solution-design
       writes:
-        - solutionPlan
+        - key: solutionPlan
+          summary_prompt: "Summarize: number of solution paths, recommended path with phases, key risks, and implementation timeline."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -458,7 +465,8 @@ stages:
       engine: llm
       system_prompt: landscape-analysis
       writes:
-        - landscapeResults
+        - key: landscapeResults
+          summary_prompt: "Summarize: competitors identified, positioning matrix highlights, market gaps, and top adoption signals."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
@@ -506,7 +514,8 @@ stages:
       engine: llm
       system_prompt: output-planning
       writes:
-        - outputPlan
+        - key: outputPlan
+          summary_prompt: "Summarize: deliverable count, deliverable types, and key structural decisions in the outline."
       reads:
         pipelineConfig: pipelineConfig
         projectContext: projectContext
@@ -573,7 +582,8 @@ stages:
       engine: llm
       system_prompt: fact-check
       writes:
-        - factCheckResults
+        - key: factCheckResults
+          summary_prompt: "Summarize: claims checked, issues found, failed claims, corrections applied, and overall confidence score."
       reads:
         pipelineConfig: pipelineConfig
         primarySources: primarySources
