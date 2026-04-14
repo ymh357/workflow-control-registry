@@ -1,5 +1,5 @@
 name: pipeline-generator
-version: 1.0.0
+version: 1.1.0
 type: pipeline
 description: Generate high-quality pipelines from natural language descriptions. Analyzes requirements, designs
   architecture, generates YAML skeleton and system prompts in parallel, validates, and persists to disk.
